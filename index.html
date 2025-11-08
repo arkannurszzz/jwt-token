@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Auth UI</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; padding: 2em; background-color: #fff; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        .form-group { margin-bottom: 1em; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 15px; border: none; background-color: #007bff; color: white; border-radius: 3px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #resultArea, #tokenArea { margin-top: 1em; padding: 1em; background-color: #e9ecef; border-radius: 3px; word-wrap: break-word; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>1. Login untuk Mendapatkan Token</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" value="ana" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" value="1234" required>
+            </div>
+            <button type="submit">Login</button>
+        </form>
+
+        <div id="tokenArea" class="hidden">
+            <h4>Token Diterima:</h4>
+            <pre id="tokenValue" style="overflow-x: scroll;"></pre>
+        </div>
+
+        <hr style="margin: 2em 0;">
+
+        <h2>2. Akses Halaman Profil</h2>
+        <button id="profileButton" disabled>Dapatkan Profil</button>
+
+        <div id="resultArea" class="hidden">
+            <h4>Hasil dari /profile:</h4>
+            <pre id="profileData"></pre>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const profileButton = document.getElementById('profileButton');
+        
+        const tokenArea = document.getElementById('tokenArea');
+        const tokenValue = document.getElementById('tokenValue');
+        
+        const resultArea = document.getElementById('resultArea');
+        const profileData = document.getElementById('profileData');
+
+        let storedToken = null;
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                storedToken = data.token;
+                tokenValue.textContent = storedToken;
+                tokenArea.classList.remove('hidden');
+                profileButton.disabled = false;
+                resultArea.classList.add('hidden');
+            } else {
+                storedToken = null;
+                tokenValue.textContent = `Error: ${data.message}`;
+                tokenArea.classList.remove('hidden');
+                profileButton.disabled = true;
+                resultArea.classList.add('hidden');
+            }
+        });
+
+        profileButton.addEventListener('click', async () => {
+            if (!storedToken) {
+                profileData.textContent = 'Token tidak tersedia. Silakan login terlebih dahulu.';
+                resultArea.classList.remove('hidden');
+                return;
+            }
+
+            const response = await fetch('/profile', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${storedToken}`
+                }
+            });
+
+            const data = await response.json();
+            
+            profileData.textContent = JSON.stringify(data, null, 2);
+            resultArea.classList.remove('hidden');
+        });
+    </script>
+
+</body>
+</html>
